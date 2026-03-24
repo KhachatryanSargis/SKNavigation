@@ -10,6 +10,12 @@ import SKCore
 /// A parent coordinator calls ``awaitResult()`` which suspends until the
 /// child coordinator calls ``finish(with:)`` or ``cancel()``.
 ///
+/// ## Cancellation Support
+///
+/// If the parent `Task` is cancelled while awaiting a result, the handler
+/// automatically resumes with `.cancelled`. This prevents zombie tasks
+/// and integrates with Swift's cooperative cancellation model.
+///
 /// - Important: Each instance supports exactly one await/resume cycle.
 ///   Create a new handler for each coordinator start.
 @MainActor
@@ -32,13 +38,22 @@ public final class CoordinatorResultHandler<Output: Sendable> {
 
     deinit {
         if !hasResumed, continuation != nil {
-            logger.warning("CoordinatorResultHandler deallocated without resuming. This indicates a coordinator was discarded without finishing or cancelling.")
+            logger.warning("CoordinatorResultHandler deallocated without resuming — auto-cancelling to prevent continuation leak.")
+            // Safety net: resume with .cancelled to prevent a permanently
+            // suspended task. A CheckedContinuation that is never resumed
+            // is a memory leak and will trap in debug builds.
+            hasResumed = true
+            continuation?.resume(returning: .cancelled)
+            continuation = nil
         }
     }
 
     // MARK: - Await
 
     /// Suspends the calling task until the coordinator produces a result.
+    ///
+    /// If the parent `Task` is cancelled before the coordinator finishes,
+    /// this method automatically resumes with `.cancelled`.
     ///
     /// - Parameter onReady: An optional closure invoked synchronously after the
     ///   continuation is stored but before the task suspends. Use this in tests
@@ -48,10 +63,19 @@ public final class CoordinatorResultHandler<Output: Sendable> {
     public func awaitResult(
         onReady: (() -> Void)? = nil
     ) async -> CoordinatorResult<Output> {
-        await withCheckedContinuation { continuation in
-            self.continuation = continuation
-            self.hasResumed = false
-            onReady?()
+        await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                self.continuation = continuation
+                self.hasResumed = false
+                onReady?()
+            }
+        } onCancel: {
+            // Task was cancelled — resume with .cancelled from any isolation.
+            // MainActor.assumeIsolated is safe here because TabRouter/NavigationRouter
+            // are MainActor-isolated and this handler is always used on MainActor.
+            Task { @MainActor [weak self] in
+                self?.resume(with: .cancelled)
+            }
         }
     }
 

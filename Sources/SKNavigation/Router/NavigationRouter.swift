@@ -27,9 +27,6 @@ public final class NavigationRouter<R: Route> {
     /// The currently presented full-screen cover route, if any.
     public var fullScreenCover: R?
 
-    /// Optional transition configuration. Defaults to system transitions.
-    public var transition: any TransitionConfiguration
-
     /// The sheet configuration for the currently presented sheet.
     /// Set automatically when presenting with ``PresentationStyle/sheet(_:)``.
     public private(set) var currentSheetConfiguration: SheetConfiguration?
@@ -45,10 +42,8 @@ public final class NavigationRouter<R: Route> {
     // MARK: - Lifecycle
 
     public init(
-        transition: any TransitionConfiguration = SystemTransition(),
         logger: any LoggerProtocol = OSLogLogger(subsystem: "SKNavigation", category: "Router")
     ) {
-        self.transition = transition
         self.logger = logger
     }
 
@@ -68,13 +63,20 @@ public final class NavigationRouter<R: Route> {
         case .present(let route, let style):
             switch style {
             case .push:
+                logger.warning("present(_:style: .push) converts to a push operation. Use .push(\(String(describing: route))) directly for clarity.")
                 path.append(route)
             case .sheet(let configuration):
                 currentSheetConfiguration = configuration
                 sheet = route
             case .fullScreenCover:
+                #if os(macOS)
+                logger.warning("fullScreenCover is not supported on macOS. Falling back to sheet presentation.")
+                currentSheetConfiguration = .default
+                sheet = route
+                #else
                 currentSheetConfiguration = nil
                 fullScreenCover = route
+                #endif
             }
 
         case .pop(count: let count):

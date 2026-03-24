@@ -35,11 +35,15 @@ public protocol Route: Hashable, Identifiable, Sendable {
 
 extension Route {
 
-    /// Default identity derived from the route's hash value.
+    /// Stable identity derived from the route's string representation.
     ///
-    /// Override this in your concrete route if you need stable identity
-    /// across navigation state restorations.
-    public var id: Int { hashValue }
+    /// Uses `String(describing:)` instead of `hashValue` because Swift's
+    /// hash values are randomized per process and are not stable across
+    /// app launches — making them unsuitable for `NavigationStack` identity
+    /// and state restoration.
+    ///
+    /// Override this in your concrete route if you need a custom identity scheme.
+    public var id: String { String(describing: self) }
 
     /// Tab bar is visible by default.
     public var hidesTabBar: Bool { false }

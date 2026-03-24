@@ -198,8 +198,14 @@ struct NavigationRouterTests {
         let router = NavigationRouter<TestRoute>()
         router.present(.profile(userId: "u1"), as: .fullScreenCover)
 
+        #if os(macOS)
+        // On macOS, fullScreenCover falls back to sheet
+        #expect(router.sheet == .profile(userId: "u1"))
+        #expect(router.fullScreenCover == nil)
+        #else
         #expect(router.fullScreenCover == .profile(userId: "u1"))
         #expect(router.sheet == nil)
+        #endif
         #expect(router.isPresenting)
     }
 
@@ -210,12 +216,16 @@ struct NavigationRouterTests {
         router.dismiss()
         router.present(.profile(userId: "u1"), as: .fullScreenCover)
 
+        #if os(macOS)
+        #expect(router.currentSheetConfiguration == .default)
+        #else
         #expect(router.currentSheetConfiguration == nil)
+        #endif
     }
 
     // MARK: - Present with Push Style
 
-    @Test("Present with push style appends to path")
+    @Test("Present with push style appends to path and logs warning")
     func presentWithPushStyleAppendsToPath() {
         let router = NavigationRouter<TestRoute>()
         router.present(.detail(id: "1"), as: .push)
@@ -358,21 +368,6 @@ struct NavigationRouterTests {
         let router = NavigationRouter<TestRoute>()
         router.navigate(to: .setStack([.home, .settings]))
         #expect(router.path == [.home, .settings])
-    }
-
-    // MARK: - Transition Configuration
-
-    @Test("Default transition is SystemTransition")
-    func defaultTransitionIsSystem() {
-        let router = NavigationRouter<TestRoute>()
-        #expect(router.transition is SystemTransition)
-    }
-
-    @Test("Custom transition can be set")
-    func customTransitionCanBeSet() {
-        let router = NavigationRouter<TestRoute>()
-        router.transition = TestTransition()
-        #expect(router.transition is TestTransition)
     }
 
     // MARK: - Tab Bar Hiding

@@ -34,6 +34,20 @@ struct RouteTests {
         #expect(a.id != b.id)
     }
 
+    @Test("Route id is stable across invocations")
+    func routeIdIsStable() {
+        let route = TestRoute.detail(id: "stable-check")
+        let id1 = route.id
+        let id2 = route.id
+        #expect(id1 == id2)
+    }
+
+    @Test("Route id is a string representation")
+    func routeIdIsString() {
+        let route = TestRoute.home
+        #expect(route.id == String(describing: route))
+    }
+
     // MARK: - Sendable
 
     @Test("Route is Sendable")

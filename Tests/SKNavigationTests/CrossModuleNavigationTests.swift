@@ -150,7 +150,12 @@ struct CrossModuleNavigationTests {
             as: .fullScreenCover
         )
 
+        // On macOS, fullScreenCover falls back to sheet presentation
+        #if os(macOS)
+        #expect(targetRouter.sheet == .detail(id: "conv-1"))
+        #else
         #expect(targetRouter.fullScreenCover == .detail(id: "conv-1"))
+        #endif
     }
 
     // MARK: - Strategy-Based Routing
@@ -162,29 +167,37 @@ struct CrossModuleNavigationTests {
         let route = TestRoute.detail(id: "x")
 
         // switchTabAndPush → push
-        switch CrossModuleStrategy.switchTabAndPush {
-        case .switchTabAndPush: router.push(route)
-        case .presentSheet: router.present(route, as: .sheet())
-        case .presentFullScreenCover: router.present(route, as: .fullScreenCover)
-        }
+        applyStrategy(.switchTabAndPush, route: route, to: router)
         #expect(router.path == [route])
         router.reset()
 
         // presentSheet → sheet
-        switch CrossModuleStrategy.presentSheet {
-        case .switchTabAndPush: router.push(route)
-        case .presentSheet: router.present(route, as: .sheet())
-        case .presentFullScreenCover: router.present(route, as: .fullScreenCover)
-        }
+        applyStrategy(.presentSheet, route: route, to: router)
         #expect(router.sheet == route)
         router.reset()
 
-        // presentFullScreenCover → fullScreenCover
-        switch CrossModuleStrategy.presentFullScreenCover {
+        // presentFullScreenCover → fullScreenCover (or sheet on macOS)
+        applyStrategy(.presentFullScreenCover, route: route, to: router)
+        #if os(macOS)
+        #expect(router.sheet == route)
+        #else
+        #expect(router.fullScreenCover == route)
+        #endif
+    }
+
+    // MARK: - Helpers
+
+    /// Applies a strategy to a router, avoiding constant-switch warnings.
+    @MainActor
+    private func applyStrategy(
+        _ strategy: CrossModuleStrategy,
+        route: TestRoute,
+        to router: NavigationRouter<TestRoute>
+    ) {
+        switch strategy {
         case .switchTabAndPush: router.push(route)
         case .presentSheet: router.present(route, as: .sheet())
         case .presentFullScreenCover: router.present(route, as: .fullScreenCover)
         }
-        #expect(router.fullScreenCover == route)
     }
 }

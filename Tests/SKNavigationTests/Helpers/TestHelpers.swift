@@ -82,11 +82,3 @@ enum TestOutput: Sendable, Equatable {
     case completed(id: String)
     case saved
 }
-
-// MARK: - Test Transition
-
-struct TestTransition: TransitionConfiguration {
-    var pushTransition: AnyTransition { .opacity }
-    var sheetAnimation: Animation { .easeIn }
-    var fullScreenCoverAnimation: Animation { .easeOut }
-}

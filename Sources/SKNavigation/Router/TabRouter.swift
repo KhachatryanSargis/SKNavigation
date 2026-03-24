@@ -63,8 +63,19 @@ public final class TabRouter<T: Tab> {
     /// The previously selected tab, useful for transition animations.
     public private(set) var previousTab: T?
 
-    /// Fires when the user taps the already-selected tab.
-    /// Coordinators can observe this to pop to root.
+    /// Set to `true` when the user taps the already-selected tab.
+    ///
+    /// Coordinators should observe this and call ``popToRoot()`` (or similar)
+    /// when it becomes `true`. The flag auto-resets to `false` after being read
+    /// via ``consumeRetap()``, or on the next tab switch.
+    ///
+    /// This one-shot design prevents count drift from accumulated re-taps
+    /// when a coordinator doesn't respond to every re-tap event.
+    public private(set) var didRetap: Bool = false
+
+    /// The number of times the selected tab has been re-tapped since the
+    /// last tab switch. Provided for backward compatibility.
+    /// Prefer ``didRetap`` and ``consumeRetap()`` for new code.
     public private(set) var retapCount: Int = 0
 
     /// Whether the tab bar is currently hidden.
@@ -87,25 +98,36 @@ public final class TabRouter<T: Tab> {
 
     // MARK: - Actions
 
-    /// Selects a tab. If the tab is already selected, increments ``retapCount``
-    /// so coordinators can respond (e.g., pop to root).
+    /// Selects a tab. If the tab is already selected, flags a re-tap event.
     ///
-    /// Coordinators should observe ``retapCount`` changes and call
-    /// ``resetRetapCount()`` after handling the re-tap.
+    /// When the same tab is tapped again, ``didRetap`` becomes `true` and
+    /// ``retapCount`` increments. Coordinators should observe ``didRetap``
+    /// and call ``consumeRetap()`` after handling the event.
     public func select(_ tab: T) {
         if tab == selectedTab {
             retapCount += 1
+            didRetap = true
             logger.debug("Re-tapped tab: \(String(describing: tab)), count: \(self.retapCount)")
         } else {
             previousTab = selectedTab
             selectedTab = tab
             retapCount = 0
+            didRetap = false
             logger.debug("Switched tab: \(String(describing: tab))")
         }
     }
 
-    /// Resets the re-tap counter. Call this after handling a re-tap event.
+    /// Acknowledges and clears the re-tap flag.
+    ///
+    /// Call this after handling a re-tap event (e.g., after popping to root)
+    /// to prevent duplicate handling.
+    public func consumeRetap() {
+        didRetap = false
+    }
+
+    /// Resets the re-tap counter and flag. Call this after handling a re-tap event.
     public func resetRetapCount() {
         retapCount = 0
+        didRetap = false
     }
 }

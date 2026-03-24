@@ -35,7 +35,22 @@ public struct CoordinatedView<C: Coordinator>: View {
     public var body: some View {
         NavigationStack(path: Binding(
             get: { coordinator.router.path },
-            set: { coordinator.router.setStack($0) }
+            set: { newValue in
+                // Detect SwiftUI-initiated path changes (e.g., back button,
+                // swipe-to-go-back) vs programmatic setStack calls.
+                // When SwiftUI shortens the path, treat it as pop operations
+                // rather than a generic setStack, so analytics/callbacks
+                // receive the correct action type.
+                let currentPath = coordinator.router.path
+                if newValue.count < currentPath.count
+                    && currentPath.starts(with: newValue)
+                {
+                    let popCount = currentPath.count - newValue.count
+                    coordinator.router.pop(count: popCount)
+                } else {
+                    coordinator.router.setStack(newValue)
+                }
+            }
         )) {
             coordinator.rootView()
                 .navigationDestination(for: C.RouteType.self) { route in
