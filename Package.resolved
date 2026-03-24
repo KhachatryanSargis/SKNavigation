@@ -1,0 +1,15 @@
+{
+  "originHash" : "15d263896451ebdf2dbfb6f1f40c9f5f5f5ee755ade95ef5a2c565907ba88d7f",
+  "pins" : [
+    {
+      "identity" : "skcore",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/KhachatryanSargis/SKCore.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "3e024a289ac4a4ce36f6ec0e66139d5041df488f"
+      }
+    }
+  ],
+  "version" : 3
+}
