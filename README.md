@@ -26,7 +26,7 @@ A lightweight, type-safe SwiftUI navigation library built on the Coordinator pat
 
 ```swift
 dependencies: [
-    .package(url: "<repository-url>", from: "1.0.0")
+    .package(url: "https://github.com/KhachatryanSargis/SKNavigation.git", from: "1.0.0")
 ],
 targets: [
     .target(name: "YourTarget", dependencies: ["SKNavigation"])
@@ -669,7 +669,7 @@ struct MyApp: App {
 
 ## Testing
 
-All navigation logic is unit-testable without a simulator. Tests use Swift Testing (`@Test`, `@Suite`).
+All navigation logic is unit-testable without a simulator. Tests use Swift Testing (`@Suite`, `@Test`, `#expect`) exclusively — no XCTest.
 
 ### Testing Coordinator Navigation
 
@@ -843,7 +843,6 @@ struct CrossModuleTests {
 ```
 SKNavigation/
 ├── Package.swift
-├── README.md
 ├── Sources/SKNavigation/
 │   ├── Route/
 │   │   ├── Route.swift              # Route protocol with hidesTabBar
@@ -862,12 +861,11 @@ SKNavigation/
 │   │   └── TabCoordinatedView.swift # TabView wiring with tab bar hiding
 │   ├── CrossModule/
 │   │   └── CrossModuleNavigation.swift  # Cross-module navigation types
-│   ├── DeepLink/
-│   │   └── DeepLinkable.swift       # Deep link handling protocols
-│   └── Transition/
-│       └── TransitionConfiguration.swift  # Custom transition animations
+│   └── DeepLink/
+│       └── DeepLinkable.swift       # Deep link handling protocol
 └── Tests/SKNavigationTests/
-    ├── Helpers/TestHelpers.swift
+    ├── Helpers/
+    │   └── TestHelpers.swift
     ├── RouteTests.swift
     ├── PresentationStyleTests.swift
     ├── NavigationRouterTests.swift
@@ -876,6 +874,12 @@ SKNavigation/
     ├── CoordinatorResultHandlerTests.swift
     └── CrossModuleNavigationTests.swift
 ```
+
+---
+
+## Dependencies
+
+- [SKCore](https://github.com/KhachatryanSargis/SKCore) — logging and foundational protocols
 
 ---
 

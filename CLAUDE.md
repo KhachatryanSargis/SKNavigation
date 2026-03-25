@@ -13,11 +13,11 @@ strict concurrency.
 
 | Area | Types | Notes |
 |---|---|---|
-| **Coordinator** | `Coordinator`, `TabCoordinator`, `CoordinatorResult`, `CoordinatorResultHandler` | `@Observable @MainActor`, drives all navigation |
-| **Router** | `NavigationRouter<R>`, `TabRouter`, `NavigationAction` | Owns navigation state, used by coordinators |
-| **Route** | `Route` protocol, `PresentationStyle` | Define routes as enums conforming to `Route` |
+| **Coordinator** | `Coordinator`, `FlowCoordinator`, `TabCoordinator`, `CoordinatorResult`, `CoordinatorResultHandler` | `@Observable @MainActor`, drives all navigation |
+| **Router** | `NavigationRouter<R>`, `TabRouter<T>`, `NavigationAction` | Owns navigation state, used by coordinators |
+| **Route** | `Route` protocol, `PresentationStyle`, `SheetConfiguration` | Define routes as enums conforming to `Route` |
 | **Views** | `CoordinatedView`, `TabCoordinatedView` | SwiftUI views that wire up coordinators |
-| **CrossModule** | `CrossModuleNavigation` | Navigate between feature modules |
+| **CrossModule** | `CrossModuleDestination`, `CrossModuleNavigationHandler` | Navigate between feature modules without direct imports |
 | **DeepLink** | `DeepLinkable` | Deep link handling protocol |
 
 ## Conventions Specific to This Package
@@ -69,30 +69,55 @@ Use the router for all navigation — never use SwiftUI's `NavigationLink` direc
 // Push
 coordinator.router.push(.detail(id: "123"))
 
-// Present modally
-coordinator.router.present(.settings, style: .sheet)
+// Present modally (note: parameter label is `as:`)
+coordinator.router.present(.settings, as: .sheet())
+coordinator.router.present(.settings, as: .sheet(.bottomSheet))
+coordinator.router.present(.settings, as: .fullScreenCover)
 
 // Pop / dismiss
 coordinator.router.pop()
 coordinator.router.dismiss()
 ```
 
+### Flow Coordinators
+Use `FlowCoordinator` for linear flows that return a typed result:
+```swift
+@Observable @MainActor
+final class OnboardingCoordinator: FlowCoordinator {
+    typealias RouteType = OnboardingRoute
+    typealias Output = OnboardingOutput
+
+    let router = NavigationRouter<OnboardingRoute>()
+    let resultHandler = CoordinatorResultHandler<OnboardingOutput>()
+
+    func start() async -> CoordinatorResult<OnboardingOutput> {
+        await resultHandler.awaitResult()
+    }
+}
+```
+
 ### Tab Coordination
-Use `TabCoordinator` + `TabCoordinatedView` for tab-based navigation:
+Use `TabCoordinator` + `TabCoordinatedView` for tab-based navigation.
+Define tabs as enums conforming to the `Tab` protocol:
 ```swift
 @Observable @MainActor
 final class AppTabCoordinator: TabCoordinator {
+    typealias TabType = AppTab
+    let tabRouter = TabRouter(initialTab: AppTab.home)
     // Each tab has its own child coordinator
 }
 ```
 
 ### Cross-Module Navigation
-Use `CrossModuleNavigation` to navigate between feature boundaries without direct dependencies.
+Use `CrossModuleDestination` and `CrossModuleNavigationHandler` to navigate
+between feature boundaries without direct dependencies.
 
 ### Testing in SKNavigation
 - Test coordinators by verifying router state after navigation actions
+- Test flow coordinators by awaiting `CoordinatorResult` values
 - Mock coordinators via the `Coordinator` protocol
 - Test deep link resolution via `DeepLinkable`
+- Use Swift Testing (`@Suite`, `@Test`, `#expect`) exclusively — no XCTest
 
 ### Build & Test
 ```bash
@@ -102,8 +127,11 @@ swift test
 ```
 
 ## Design Rules
+
 - Coordinators own routers, views don't
 - Views receive coordinators as dependencies, never create them
 - All navigation state lives in the router — views are stateless with respect to navigation
-- Tab bar visibility is determined by the `Route`, not the view
+- Tab bar visibility is determined by the `Route.hidesTabBar` property, not the view
 - No `AnyView` — use `@ViewBuilder` in coordinator's `destination(for:)`
+- All public API must be documented with `///` comments
+- Only one coordinator tree branch should be alive at a time (auth transitions release the outgoing tree)
