@@ -13,7 +13,6 @@ struct TabRouterTests {
 
         #expect(router.selectedTab == .first)
         #expect(router.previousTab == nil)
-        #expect(router.retapCount == 0)
         #expect(router.didRetap == false)
         #expect(router.isTabBarHidden == false)
     }
@@ -46,27 +45,17 @@ struct TabRouterTests {
         #expect(router.previousTab == .second)
     }
 
-    @Test("Selecting a different tab resets retap count and flag")
-    func selectDifferentTabResetsRetapCount() {
+    @Test("Selecting a different tab resets didRetap flag")
+    func selectDifferentTabResetsDidRetap() {
         let router = TabRouter(initialTab: TestTab.first)
         router.select(.first) // retap
-        router.select(.first) // retap again
-        #expect(router.retapCount == 2)
         #expect(router.didRetap == true)
 
         router.select(.second) // switch tab
-        #expect(router.retapCount == 0)
         #expect(router.didRetap == false)
     }
 
     // MARK: - Re-tap Detection
-
-    @Test("Selecting same tab increments retap count")
-    func selectSameTabIncrementsRetapCount() {
-        let router = TabRouter(initialTab: TestTab.first)
-        router.select(.first)
-        #expect(router.retapCount == 1)
-    }
 
     @Test("Selecting same tab sets didRetap flag")
     func selectSameTabSetsDidRetap() {
@@ -75,13 +64,13 @@ struct TabRouterTests {
         #expect(router.didRetap == true)
     }
 
-    @Test("Selecting same tab multiple times accumulates")
-    func selectSameTabMultipleTimesAccumulates() {
+    @Test("Selecting same tab multiple times keeps didRetap true")
+    func selectSameTabMultipleTimesKeepsDidRetap() {
         let router = TabRouter(initialTab: TestTab.first)
         router.select(.first)
         router.select(.first)
         router.select(.first)
-        #expect(router.retapCount == 3)
+        #expect(router.didRetap == true)
     }
 
     @Test("Retap does not change previousTab")
@@ -112,8 +101,6 @@ struct TabRouterTests {
 
         router.consumeRetap()
         #expect(router.didRetap == false)
-        // retapCount is NOT reset by consumeRetap — only the one-shot flag
-        #expect(router.retapCount == 1)
     }
 
     @Test("consumeRetap on false is a no-op")
@@ -121,28 +108,6 @@ struct TabRouterTests {
         let router = TabRouter(initialTab: TestTab.first)
         router.consumeRetap()
         #expect(router.didRetap == false)
-    }
-
-    // MARK: - Reset Retap Count
-
-    @Test("Reset retap count sets to zero and clears flag")
-    func resetRetapCountSetsToZero() {
-        let router = TabRouter(initialTab: TestTab.first)
-        router.select(.first)
-        router.select(.first)
-        #expect(router.retapCount == 2)
-        #expect(router.didRetap == true)
-
-        router.resetRetapCount()
-        #expect(router.retapCount == 0)
-        #expect(router.didRetap == false)
-    }
-
-    @Test("Reset retap count on zero is a no-op")
-    func resetRetapCountOnZeroIsNoOp() {
-        let router = TabRouter(initialTab: TestTab.first)
-        router.resetRetapCount()
-        #expect(router.retapCount == 0)
     }
 
     // MARK: - Tab Protocol Defaults

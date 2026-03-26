@@ -777,7 +777,7 @@ struct AppCoordinatorTabTests {
         let coordinator = AppCoordinator(session: mockSession)
         coordinator.tabRouter.select(.home) // retap
 
-        #expect(coordinator.tabRouter.retapCount == 1)
+        #expect(coordinator.tabRouter.didRetap == true)
     }
 }
 ```

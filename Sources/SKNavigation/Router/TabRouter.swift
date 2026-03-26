@@ -73,11 +73,6 @@ public final class TabRouter<T: Tab> {
     /// when a coordinator doesn't respond to every re-tap event.
     public private(set) var didRetap: Bool = false
 
-    /// The number of times the selected tab has been re-tapped since the
-    /// last tab switch. Provided for backward compatibility.
-    /// Prefer ``didRetap`` and ``consumeRetap()`` for new code.
-    public private(set) var retapCount: Int = 0
-
     /// Whether the tab bar is currently hidden.
     /// Updated by ``TabCoordinatedView`` based on the active route's ``Route/hidesTabBar``.
     public var isTabBarHidden: Bool = false
@@ -100,18 +95,16 @@ public final class TabRouter<T: Tab> {
 
     /// Selects a tab. If the tab is already selected, flags a re-tap event.
     ///
-    /// When the same tab is tapped again, ``didRetap`` becomes `true` and
-    /// ``retapCount`` increments. Coordinators should observe ``didRetap``
-    /// and call ``consumeRetap()`` after handling the event.
+    /// When the same tab is tapped again, ``didRetap`` becomes `true`.
+    /// Coordinators should observe ``didRetap`` and call
+    /// ``consumeRetap()`` after handling the event.
     public func select(_ tab: T) {
         if tab == selectedTab {
-            retapCount += 1
             didRetap = true
-            logger.debug("Re-tapped tab: \(String(describing: tab)), count: \(self.retapCount)")
+            logger.debug("Re-tapped tab: \(String(describing: tab))")
         } else {
             previousTab = selectedTab
             selectedTab = tab
-            retapCount = 0
             didRetap = false
             logger.debug("Switched tab: \(String(describing: tab))")
         }
@@ -122,12 +115,6 @@ public final class TabRouter<T: Tab> {
     /// Call this after handling a re-tap event (e.g., after popping to root)
     /// to prevent duplicate handling.
     public func consumeRetap() {
-        didRetap = false
-    }
-
-    /// Resets the re-tap counter and flag. Call this after handling a re-tap event.
-    public func resetRetapCount() {
-        retapCount = 0
         didRetap = false
     }
 }

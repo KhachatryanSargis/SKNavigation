@@ -41,7 +41,8 @@ public protocol DeepLinkable: AnyObject {
 /// Represents a parsed deep link destination.
 ///
 /// Implement this in your app layer to define the set of supported
-/// deep link destinations.
+/// deep link destinations. The failable initializer lets coordinators
+/// attempt parsing without coupling to URL structure.
 ///
 /// Example:
 /// ```swift
@@ -51,7 +52,17 @@ public protocol DeepLinkable: AnyObject {
 ///     case settings
 ///
 ///     init?(url: URL) {
-///         // Parse URL components into a deep link
+///         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+///               let host = components.host else { return nil }
+///
+///         let pathSegments = components.path.split(separator: "/").map(String.init)
+///
+///         switch (host, pathSegments.first) {
+///         case ("product", let id?):  self = .product(id: id)
+///         case ("profile", let id?):  self = .profile(userId: id)
+///         case ("settings", _):       self = .settings
+///         default:                    return nil
+///         }
 ///     }
 /// }
 /// ```
